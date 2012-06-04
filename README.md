@@ -13,6 +13,7 @@ PS: This will not make your application bulletproof, just better :)
 
 #### Example:
 A regular shared preference file looks like this from adb shell:
+
     cat /data/data/your.package.application/shared_prefs/prefs-test.xml
     <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
     <map>
@@ -20,6 +21,7 @@ A regular shared preference file looks like this from adb shell:
     </map>
     
 With encryption you get a less obvious version:
+
 	cat /data/data/your.package.application/shared_prefs/prefs-test.xml
     <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
     <map>

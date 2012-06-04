@@ -1,8 +1,8 @@
 encrypted-userprefs
 ===================
 
-A slightly less insecure wrapper for [SharedUserPreferences](http://developer.android.com/reference/android/content/SharedPreferences.html) for Android. 
-SharedPreferences on Android stores all of your values in "plain text", simply protected by the user-restricted file system on Android.
+An encrypted and slightly less insecure wrapper for [SharedPreferences](http://developer.android.com/reference/android/content/SharedPreferences.html) for Android. 
+[SharedPreferences](http://developer.android.com/reference/android/content/SharedPreferences.html) on Android stores all of your values in "plain text", simply protected by the user-restricted file system on Android.
 If you gain root access to an Android device you have full read/write access to the application preferences of all of the applications installed.
 
 Many applications store some kind of application secret (e.g. a communication token, last used account number) using SharedPreferences. 

@@ -1,10 +1,33 @@
+/*
+Copyright (C) 2012 Sveinung Kval Bakken, sveinung.bakken@gmail.com
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+ */
+
 import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
@@ -14,14 +37,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
 
-/*
- * Copyright and so on:
- * Please use and modify however you like, but I'd prefer it if you kept this section.
- * I'd love to hear about it if you use this in your application, drop me a comment or an email/PM, thank you!
- * 
- * Sveinung Kval Bakken
- * sveinung.bakken@gmail.com
- */
 
 public class SecurePreferences {
 
@@ -34,19 +49,22 @@ public class SecurePreferences {
 	}
 
 	private static final String TRANSFORMATION = "AES/CBC/PKCS5Padding";
+	private static final String KEY_TRANSFORMATION = "AES/ECB/PKCS5Padding";
 	private static final String SECRET_KEY_HASH_TRANSFORMATION = "SHA-256";
 	private static final String CHARSET = "UTF-8";
 
 	private final boolean encryptKeys;
 	private final Cipher writer;
 	private final Cipher reader;
+	private final Cipher keyWriter;
 	private final SharedPreferences preferences;
 
 	/**
 	 * This will initialize an instance of the SecurePreferences class
 	 * @param context your current context.
 	 * @param preferenceName name of preferences file (preferenceName.xml)
-	 * @param secureKey the key used for encryption, finding a good key scheme is hard. Hardcoding your key in the application is bad, but better than plaintext preferences. Having the user enter the key upon application launch is a safe(r) alternative, but annoying to the user.
+	 * @param secureKey the key used for encryption, finding a good key scheme is hard. 
+	 * Hardcoding your key in the application is bad, but better than plaintext preferences. Having the user enter the key upon application launch is a safe(r) alternative, but annoying to the user.
 	 * @param encryptKeys settings this to false will only encrypt the values, 
 	 * true will encrypt both values and keys. Keys can contain a lot of information about 
 	 * the plaintext value of the value which can be used to decipher the value.
@@ -56,6 +74,7 @@ public class SecurePreferences {
 		try {
 			this.writer = Cipher.getInstance(TRANSFORMATION);
 			this.reader = Cipher.getInstance(TRANSFORMATION);
+			this.keyWriter = Cipher.getInstance(KEY_TRANSFORMATION);
 
 			initCiphers(secureKey);
 
@@ -78,15 +97,15 @@ public class SecurePreferences {
 
 		writer.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
 		reader.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+		keyWriter.init(Cipher.ENCRYPT_MODE, secretKey);
 	}
-
+	
 	protected IvParameterSpec getIv() {
 		byte[] iv = new byte[writer.getBlockSize()];
-		new SecureRandom().nextBytes(iv);
-		IvParameterSpec ivSpec = new IvParameterSpec(iv);
-		return ivSpec;
+		System.arraycopy("fldsjfodasjifudslfjdsaofshaufihadsf".getBytes(), 0, iv, 0, writer.getBlockSize());
+		return new IvParameterSpec(iv);
 	}
-
+	
 	protected SecretKeySpec getSecretKey(String key) throws UnsupportedEncodingException, NoSuchAlgorithmException {
 		byte[] keyBytes = createKeyBytes(key);
 		return new SecretKeySpec(keyBytes, TRANSFORMATION);
@@ -96,7 +115,6 @@ public class SecurePreferences {
 		MessageDigest md = MessageDigest.getInstance(SECRET_KEY_HASH_TRANSFORMATION);
 		md.reset();
 		byte[] keyBytes = md.digest(key.getBytes(CHARSET));
-
 		return keyBytes;
 	}
 
@@ -131,17 +149,17 @@ public class SecurePreferences {
 
 	private String toKey(String key) {
 		if (encryptKeys)
-			return encrypt(key);
+			return encrypt(key, keyWriter);
 		else return key;
 	}
 
 	private void putValue(String key, String value) throws SecurePreferencesException {
-		String secureValueEncoded = encrypt(value);
+		String secureValueEncoded = encrypt(value, writer);
 
 		preferences.edit().putString(key, secureValueEncoded).commit();
 	}
 
-	protected String encrypt(String value) throws SecurePreferencesException {
+	protected String encrypt(String value, Cipher writer) throws SecurePreferencesException {
 		byte[] secureValue;
 		try {
 			secureValue = convert(writer, value.getBytes(CHARSET));

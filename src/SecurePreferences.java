@@ -40,7 +40,7 @@ import android.util.Base64;
 
 public class SecurePreferences {
 
-	public static class SecurePreferencesException extends RuntimeException {
+	public class SecurePreferencesException extends RuntimeException {
 
 		public SecurePreferencesException(Throwable e) {
 			super(e);
@@ -82,12 +82,9 @@ public class SecurePreferences {
 
 			this.encryptKeys = encryptKeys;
 		}
-		catch (GeneralSecurityException e) {
-			throw new SecurePreferencesException(e);
-		}
-		catch (UnsupportedEncodingException e) {
-			throw new SecurePreferencesException(e);
-		}
+		catch (GeneralSecurityException | UnsupportedEncodingException e) {
+                throw new SecurePreferencesException(e);
+            }
 	}
 
 	protected void initCiphers(String secureKey) throws UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeyException,
@@ -114,13 +111,12 @@ public class SecurePreferences {
 	protected byte[] createKeyBytes(String key) throws UnsupportedEncodingException, NoSuchAlgorithmException {
 		MessageDigest md = MessageDigest.getInstance(SECRET_KEY_HASH_TRANSFORMATION);
 		md.reset();
-		byte[] keyBytes = md.digest(key.getBytes(CHARSET));
-		return keyBytes;
+		return md.digest(key.getBytes(CHARSET));
 	}
 
 	public void put(String key, String value) {
 		if (value == null) {
-			preferences.edit().remove(toKey(key)).commit();
+			preferences.edit().remove(toKey(key)).apply();
 		}
 		else {
 			putValue(toKey(key), value);
@@ -132,7 +128,7 @@ public class SecurePreferences {
 	}
 
 	public void removeValue(String key) {
-		preferences.edit().remove(toKey(key)).commit();
+		preferences.edit().remove(toKey(key)).apply();
 	}
 
 	public String getString(String key) throws SecurePreferencesException {
@@ -144,7 +140,7 @@ public class SecurePreferences {
 	}
 
 	public void clear() {
-		preferences.edit().clear().commit();
+		preferences.edit().clear().apply();
 	}
 
 	private String toKey(String key) {
@@ -156,7 +152,7 @@ public class SecurePreferences {
 	private void putValue(String key, String value) throws SecurePreferencesException {
 		String secureValueEncoded = encrypt(value, writer);
 
-		preferences.edit().putString(key, secureValueEncoded).commit();
+		preferences.edit().putString(key, secureValueEncoded).apply();
 	}
 
 	protected String encrypt(String value, Cipher writer) throws SecurePreferencesException {
@@ -167,8 +163,7 @@ public class SecurePreferences {
 		catch (UnsupportedEncodingException e) {
 			throw new SecurePreferencesException(e);
 		}
-		String secureValueEncoded = Base64.encodeToString(secureValue, Base64.NO_WRAP);
-		return secureValueEncoded;
+		return Base64.encodeToString(secureValue, Base64.NO_WRAP);
 	}
 
 	protected String decrypt(String securedEncodedValue) {
@@ -182,7 +177,7 @@ public class SecurePreferences {
 		}
 	}
 
-	private static byte[] convert(Cipher cipher, byte[] bs) throws SecurePreferencesException {
+	private byte[] convert(Cipher cipher, byte[] bs) throws SecurePreferencesException {
 		try {
 			return cipher.doFinal(bs);
 		}

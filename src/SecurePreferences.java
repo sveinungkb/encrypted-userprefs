@@ -36,6 +36,7 @@ import javax.crypto.spec.SecretKeySpec;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
+import com.google.gson.Gson;
 
 
 public class SecurePreferences {
@@ -52,6 +53,7 @@ public class SecurePreferences {
 	private static final String KEY_TRANSFORMATION = "AES/ECB/PKCS5Padding";
 	private static final String SECRET_KEY_HASH_TRANSFORMATION = "SHA-256";
 	private static final String CHARSET = "UTF-8";
+	private static Gson GSON;
 
 	private final boolean encryptKeys;
 	private final Cipher writer;
@@ -75,6 +77,7 @@ public class SecurePreferences {
 			this.writer = Cipher.getInstance(TRANSFORMATION);
 			this.reader = Cipher.getInstance(TRANSFORMATION);
 			this.keyWriter = Cipher.getInstance(KEY_TRANSFORMATION);
+			GSON = new Gson();
 
 			initCiphers(secureKey);
 
@@ -118,6 +121,16 @@ public class SecurePreferences {
 		return keyBytes;
 	}
 
+	public void put(String key, Object value){
+		if (value == null) {
+			preferences.edit().remove(toKey(key)).commit();
+		}
+		else{
+			String jsonData = GSON.toJson(value);
+			putValue(toKey(key), jsonData);
+		}
+	}
+
 	public void put(String key, String value) {
 		if (value == null) {
 			preferences.edit().remove(toKey(key)).commit();
@@ -133,6 +146,19 @@ public class SecurePreferences {
 
 	public void removeValue(String key) {
 		preferences.edit().remove(toKey(key)).commit();
+	}
+
+	public <T> T getObject(String key, Class<T> a) {
+		String gson = getString(key);
+		if (gson == null) {
+			return null;
+		} else {
+			try{
+				return GSON.fromJson(gson, a);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Object storaged with key " + key + " is instanceof other class");
+			}
+		}
 	}
 
 	public String getString(String key) throws SecurePreferencesException {
